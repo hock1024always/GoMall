@@ -4,6 +4,7 @@ go 1.23.3
 
 require (
 	github.com/casbin/casbin/v2 v2.103.0
+	github.com/casbin/gorm-adapter/v3 v3.1.1
 	github.com/cloudwego/kitex v0.12.2
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/kitex-contrib/obs-opentelemetry/logging/logrus v0.0.0-20241120035129-55da83caab1b

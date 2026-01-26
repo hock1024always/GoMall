@@ -35,10 +35,24 @@ func JWTAuthMiddleware(next endpoint.Endpoint) endpoint.Endpoint {
 
 		// 将 claims 存入上下文
 		if claims, ok := token.Claims.(jwt.MapClaims); ok {
-			ctx = context.WithValue(ctx, "user_role", claims["user_role"])
-			ctx = context.WithValue(ctx, "resource", claims["resource"])
-			ctx = context.WithValue(ctx, "action", claims["action"])
-
+			// 提取用户ID
+			if userID, ok := claims["user_id"].(float64); ok {
+				ctx = context.WithValue(ctx, "user_id", int64(userID))
+			}
+			// 提取用户角色
+			if userRole, ok := claims["user_role"].(string); ok {
+				ctx = context.WithValue(ctx, "user_role", userRole)
+			} else {
+				// 默认角色
+				ctx = context.WithValue(ctx, "user_role", "customer")
+			}
+			// 提取资源和操作（如果存在）
+			if resource, ok := claims["resource"].(string); ok {
+				ctx = context.WithValue(ctx, "resource", resource)
+			}
+			if action, ok := claims["action"].(string); ok {
+				ctx = context.WithValue(ctx, "action", action)
+			}
 		}
 
 		return next(ctx, req, resp)

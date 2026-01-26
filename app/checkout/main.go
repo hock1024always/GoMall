@@ -5,6 +5,7 @@ import (
 	"github.com/cloudwego/kitex/server"
 	"github.com/joho/godotenv"
 	"github.com/xvxiaoman8/gomall/app/checkout/biz/dal"
+	"github.com/xvxiaoman8/gomall/app/checkout/biz/service"
 	"github.com/xvxiaoman8/gomall/app/checkout/conf"
 	"github.com/xvxiaoman8/gomall/app/checkout/infra/rpc"
 	"github.com/xvxiaoman8/gomall/common/mtl"
@@ -34,6 +35,7 @@ func main() {
 	//defer mq.ConnClose()
 	dal.Init()
 	rpc.InitClient()
+	service.InitSaga() // 初始化 Saga
 	opts := kitexInit()
 
 	svr := checkoutservice.NewServer(new(CheckoutServiceImpl), opts...)
