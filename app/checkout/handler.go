@@ -15,3 +15,10 @@ func (s *CheckoutServiceImpl) Checkout(ctx context.Context, req *checkout.Checko
 
 	return resp, err
 }
+
+// GetSagaStatus implements the CheckoutServiceImpl interface.
+func (s *CheckoutServiceImpl) GetSagaStatus(ctx context.Context, req *checkout.GetSagaStatusReq) (resp *checkout.GetSagaStatusResp, err error) {
+	resp, err = service.NewGetSagaStatusService(ctx).Run(req)
+
+	return resp, err
+}

@@ -263,8 +263,8 @@ func cancelOrderCompensate(ctx context.Context, sagaCtx map[string]interface{}) 
 
 	userID, _ := sagaCtx["user_id"].(int64)
 
-	// 调用订单服务删除订单（作为补偿）
-	_, err := rpc.OrderClient.DeleteOrder(ctx, &order.DeleteOrderReq{
+	// 调用订单服务取消订单（作为补偿）
+	_, err := rpc.OrderClient.CancelOrder(ctx, &order.CancelOrderReq{
 		UserId:  uint32(userID),
 		OrderId: orderID,
 	})
@@ -376,12 +376,14 @@ func refundPaymentCompensate(ctx context.Context, sagaCtx map[string]interface{}
 
 	userID, _ := sagaCtx["user_id"].(int64)
 	totalAmount, _ := sagaCtx["total_amount"].(float32)
+	creditCard, _ := sagaCtx["credit_card"].(*payment.CreditCardInfo)
 
 	// 调用支付服务退款
 	_, err := rpc.PaymentClient.Refund(ctx, &payment.RefundReq{
 		UserId:        userID,
 		TransactionId: paymentID,
 		Amount:        totalAmount,
+		CreditCard:    creditCard,
 	})
 
 	if err != nil {
@@ -414,8 +416,7 @@ func markOrderPaidAction(ctx context.Context, sagaCtx map[string]interface{}) er
 }
 
 // unmarkOrderPaidCompensate 取消订单已支付标记
-// 注意：由于 UpdateOrderReq 不支持状态字段，这里只能记录日志
-// 实际生产环境中应该添加 CancelOrder RPC 方法或扩展 UpdateOrder 支持状态更新
+// 通过将订单状态改为canceled来实现补偿
 func unmarkOrderPaidCompensate(ctx context.Context, sagaCtx map[string]interface{}) error {
 	orderID, ok := sagaCtx["order_id"].(string)
 	if !ok || orderID == "" {
@@ -423,17 +424,18 @@ func unmarkOrderPaidCompensate(ctx context.Context, sagaCtx map[string]interface
 		return nil
 	}
 
-	// 由于 UpdateOrderReq 不支持状态字段，这里只能记录日志
-	// 实际生产环境中应该添加 CancelOrder RPC 方法或扩展 UpdateOrder 支持状态更新
-	klog.Warnf("Cannot unmark order paid %s: UpdateOrderReq does not support status field. Order state may be inconsistent.", orderID)
-	
-	// 可选：调用 DeleteOrder 删除订单（如果业务允许）
-	// userID, _ := sagaCtx["user_id"].(int64)
-	// _, err := rpc.OrderClient.DeleteOrder(ctx, &order.DeleteOrderReq{
-	// 	UserId:  uint32(userID),
-	// 	OrderId: orderID,
-	// })
-	// return err
+	userID, _ := sagaCtx["user_id"].(int64)
+
+	// 调用订单服务取消订单
+	_, err := rpc.OrderClient.CancelOrder(ctx, &order.CancelOrderReq{
+		UserId:  uint32(userID),
+		OrderId: orderID,
+	})
+
+	if err != nil {
+		klog.Errorf("failed to cancel order %s in unmark paid compensate: %v", orderID, err)
+		return err
+	}
 
 	return nil
 }

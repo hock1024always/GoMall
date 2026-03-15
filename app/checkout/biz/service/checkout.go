@@ -57,6 +57,7 @@ func (s *CheckoutService) Run(req *checkout.CheckoutReq) (resp *checkout.Checkou
 	return &checkout.CheckoutResp{
 		OrderId:       orderID,
 		TransactionId: paymentID,
+		SagaId:        sagaID,
 	}, nil
 }
 

@@ -58,3 +58,10 @@ func (s *OrderServiceImpl) DeleteOrder(ctx context.Context, req *order.DeleteOrd
 
 	return resp, err
 }
+
+// CancelOrder implements the OrderServiceImpl interface (for Saga compensation).
+func (s *OrderServiceImpl) CancelOrder(ctx context.Context, req *order.CancelOrderReq) (resp *order.CancelOrderResp, err error) {
+	resp, err = service.NewCancelOrderService(ctx).Run(req)
+
+	return resp, err
+}

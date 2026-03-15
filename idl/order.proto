@@ -12,6 +12,7 @@ service OrderService {
   rpc MarkOrderPaid(MarkOrderPaidReq) returns (MarkOrderPaidResp) {}
   rpc UpdateOrder(UpdateOrderReq) returns (UpdateOrderResp) {}  // 新增的RPC方法
   rpc DeleteOrder(DeleteOrderReq) returns (DeleteOrderResp) {}  // 新增的RPC方法
+  rpc CancelOrder(CancelOrderReq) returns (CancelOrderResp) {}  // 用于Saga补偿
 }
 
 message Address {
@@ -88,4 +89,15 @@ message DeleteOrderReq {
 
 message DeleteOrderResp {
   OrderResult order = 1;  // 返回更新后的订单信息
+}
+
+// 取消订单请求（用于Saga补偿）
+message CancelOrderReq {
+  string order_id = 1;
+  uint32 user_id = 2;
+}
+
+message CancelOrderResp {
+  bool success = 1;
+  string message = 2;
 }

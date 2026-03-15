@@ -12,10 +12,70 @@ services:
       - MYSQL_DATABASE=demo_proto
     volumes:
       - ./db/sql/ini:/docker-entrypoint-initdb.d
-  redis:
-    image: "redis:latest"
+
+  # Redis Master
+  redis-master:
+    image: "redis:7.0-alpine"
+    container_name: redis-master
+    command: redis-server /etc/redis/redis.conf
     ports:
-      - 6379:6379
+      - "6379:6379"
+    volumes:
+      - ./config/redis/master.conf:/etc/redis/redis.conf
+      - redis-master-data:/data
+
+  # Redis Slave
+  redis-slave:
+    image: "redis:7.0-alpine"
+    container_name: redis-slave
+    command: redis-server /etc/redis/redis.conf
+    ports:
+      - "6380:6379"
+    volumes:
+      - ./config/redis/slave.conf:/etc/redis/redis.conf
+      - redis-slave-data:/data
+    depends_on:
+      - redis-master
+
+  # Redis Sentinel 1
+  redis-sentinel-1:
+    image: "redis:7.0-alpine"
+    container_name: redis-sentinel-1
+    command: redis-sentinel /etc/redis/sentinel.conf
+    ports:
+      - "26379:26379"
+    volumes:
+      - ./config/redis/sentinel.conf:/etc/redis/sentinel.conf
+    depends_on:
+      - redis-master
+      - redis-slave
+
+  # Redis Sentinel 2
+  redis-sentinel-2:
+    image: "redis:7.0-alpine"
+    container_name: redis-sentinel-2
+    command: redis-sentinel /etc/redis/sentinel.conf
+    ports:
+      - "26380:26379"
+    volumes:
+      - ./config/redis/sentinel.conf:/etc/redis/sentinel.conf
+    depends_on:
+      - redis-master
+      - redis-slave
+
+  # Redis Sentinel 3
+  redis-sentinel-3:
+    image: "redis:7.0-alpine"
+    container_name: redis-sentinel-3
+    command: redis-sentinel /etc/redis/sentinel.conf
+    ports:
+      - "26381:26379"
+    volumes:
+      - ./config/redis/sentinel.conf:/etc/redis/sentinel.conf
+    depends_on:
+      - redis-master
+      - redis-slave
+
   jaeger-all-in-one:
     container_name: jaeger-all-in-one
     image: jaegertracing/all-in-one:latest
@@ -44,4 +104,53 @@ services:
       - GF_AUTH_DISABLE_LOGIN_FORM=true
     ports:
       - "3000:3000"
+
+  # OpenResty Gateway
+  openresty:
+    image: openresty/openresty:alpine
+    container_name: openresty-gateway
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./config/nginx/nginx.conf:/usr/local/openresty/nginx/conf/nginx.conf:ro
+      - ./config/nginx/lua:/usr/local/openresty/nginx/lua:ro
+    depends_on:
+      - redis-slave
+      - frontend
+
+  # Frontend Service (Hertz)
+  frontend:
+    image: golang:1.21-alpine
+    container_name: frontend
+    working_dir: /app
+    command: sh -c "go run main.go"
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./app/frontend:/app
+    depends_on:
+      - consul
+      - redis-master
+
+  # ClickHouse (OLAP)
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: clickhouse
+    ports:
+      - "8123:8123"  # HTTP接口
+      - "9000:9000"  # Native接口
+    environment:
+      - CLICKHOUSE_DB=gomall_analytics
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_PASSWORD=gomall
+      - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+      - ./config/clickhouse/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+volumes:
+  redis-master-data:
+  redis-slave-data:
+  clickhouse-data:
 

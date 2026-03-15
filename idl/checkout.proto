@@ -8,6 +8,7 @@ option go_package = "/checkout";
 
 service CheckoutService {
   rpc Checkout(CheckoutReq) returns (CheckoutResp) {}
+  rpc GetSagaStatus(GetSagaStatusReq) returns (GetSagaStatusResp) {}  // 查询Saga状态
 }
 
 message Address {
@@ -30,4 +31,27 @@ message CheckoutReq {
 message CheckoutResp {
   string order_id = 1;
   string transaction_id = 2;
+  string saga_id = 3;  // 返回Saga ID用于查询状态
+}
+
+// Saga状态查询
+message GetSagaStatusReq {
+  string saga_id = 1;
+}
+
+message GetSagaStatusResp {
+  string saga_id = 1;
+  string status = 2;          // started, completed, compensating, failed
+  int32 current_step = 3;     // 当前步骤索引
+  repeated SagaLog logs = 4;  // 执行日志
+  string created_at = 5;
+  string updated_at = 6;
+}
+
+message SagaLog {
+  string step = 1;
+  string action = 2;   // execute | compensate
+  string status = 3;   // success | failed
+  string error = 4;
+  string timestamp = 5;
 }
